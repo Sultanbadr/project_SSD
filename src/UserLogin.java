@@ -1,4 +1,7 @@
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
@@ -18,15 +21,32 @@ public class UserLogin {
     public void initializeComponents() {
         VBox layout = new VBox(10);
         layout.setPadding(new Insets(10));
+
+        Label loginLabel = new Label("User Login");
+        usernameField.setPromptText("Username");
+        passwordField.setPromptText("Password");
+
         Button loginButton = new Button("Sign In");
+        Button signupButton = new Button("Create Account");
+
+        Label statusLabel = new Label();
+
         loginButton.setOnAction(this::authenticate);
+        signupButton.setOnAction(e -> {
+            UserSignup signup = new UserSignup(stage);
+            signup.initializeComponents();
+        });
 
         layout.getChildren().addAll(
+                loginLabel,
                 new Label("Username:"), usernameField,
                 new Label("Password:"), passwordField,
-                loginButton);
+                loginButton,
+                signupButton,
+                statusLabel
+        );
 
-        stage.setScene(new Scene(layout, 300, 200));
+        stage.setScene(new Scene(layout, 300, 250));
         stage.setTitle("User Login");
         stage.show();
     }
@@ -34,6 +54,11 @@ public class UserLogin {
     private void authenticate(ActionEvent event) {
         String username = usernameField.getText();
         String password = passwordField.getText();
+
+        if (username.isEmpty() || password.isEmpty()) {
+            showAlert("Missing Fields", "Please enter both username and password.");
+            return;
+        }
 
         try (Connection con = DBUtils.establishConnection()) {
             String query = "SELECT * FROM users WHERE username = ? AND password = ?";
@@ -48,9 +73,10 @@ public class UserLogin {
             } else {
                 showAlert("Authentication Failed", "Invalid username or password.");
             }
+
         } catch (Exception e) {
             e.printStackTrace();
-            showAlert("Database Error", "Could not connect.");
+            showAlert("Database Error", "Could not connect to the database.");
         }
     }
 
