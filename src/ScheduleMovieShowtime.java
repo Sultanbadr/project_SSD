@@ -33,6 +33,7 @@ public class ScheduleMovieShowtime {
         timeField.setPromptText("Show Time (HH:MM)");
 
         Button submitBtn = new Button("Schedule");
+        Button backBtn = new Button("Back");
         Label statusLabel = new Label();
 
         submitBtn.setOnAction(e -> {
@@ -63,7 +64,9 @@ public class ScheduleMovieShowtime {
             }
         });
 
-        layout.getChildren().addAll(titleField, genreField, durationField, roomField, datePicker, timeField, submitBtn, statusLabel);
+        backBtn.setOnAction(e -> new Dashboard(stage).initializeComponents());
+
+        layout.getChildren().addAll(titleField, genreField, durationField, roomField, datePicker, timeField, submitBtn, backBtn, statusLabel);
         stage.setScene(new Scene(layout, 400, 400));
         stage.setTitle("Schedule Movie Showtime");
         stage.show();

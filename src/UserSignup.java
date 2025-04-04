@@ -25,6 +25,7 @@ public class UserSignup {
         passwordField.setPromptText("Enter password");
 
         Button signupButton = new Button("Sign Up");
+        Button backButton = new Button("Back");
         Label statusLabel = new Label();
 
         signupButton.setOnAction(e -> {
@@ -40,7 +41,7 @@ public class UserSignup {
                 String insertUser = "INSERT INTO users (username, password) VALUES (?, ?)";
                 PreparedStatement stmt = con.prepareStatement(insertUser);
                 stmt.setString(1, username);
-                stmt.setString(2, password); // 👉 Plain text for now (can hash later)
+                stmt.setString(2, password);
                 stmt.executeUpdate();
 
                 statusLabel.setText("Account created successfully!");
@@ -50,7 +51,17 @@ public class UserSignup {
             }
         });
 
-        layout.getChildren().addAll(new Label("Create Account"), usernameField, passwordField, signupButton, statusLabel);
+        backButton.setOnAction(e -> {
+            UserLogin login = new UserLogin(stage);
+            login.initializeComponents();
+        });
+
+        layout.getChildren().addAll(
+                new Label("Create Account"),
+                usernameField, passwordField,
+                signupButton, backButton,
+                statusLabel
+        );
         stage.setScene(new Scene(layout, 300, 250));
         stage.setTitle("User Sign Up");
         stage.show();

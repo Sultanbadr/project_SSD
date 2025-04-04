@@ -19,13 +19,15 @@ public class Dashboard {
         Button seatsBtn = new Button("Seat Selection");
         Button analyticsBtn = new Button("Movie Analytics");
         Button maintenanceBtn = new Button("Maintenance Logger");
+        Button backBtn = new Button("Logout");
 
         scheduleBtn.setOnAction(e -> new ScheduleMovieShowtime(stage).initializeComponents());
         seatsBtn.setOnAction(e -> new SeatSelection(stage).initializeComponents());
         analyticsBtn.setOnAction(e -> new MovieAnalytics(stage).initializeComponents());
         maintenanceBtn.setOnAction(e -> new MaintenanceLogger(stage).initializeComponents());
+        backBtn.setOnAction(e -> new UserLogin(stage).initializeComponents());
 
-        layout.getChildren().addAll(scheduleBtn, seatsBtn, analyticsBtn, maintenanceBtn);
+        layout.getChildren().addAll(scheduleBtn, seatsBtn, analyticsBtn, maintenanceBtn, backBtn);
         stage.setScene(new Scene(layout, 300, 250));
         stage.setTitle("Dashboard");
         stage.show();

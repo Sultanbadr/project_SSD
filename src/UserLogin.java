@@ -1,7 +1,4 @@
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-
+import java.sql.*;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
@@ -28,7 +25,6 @@ public class UserLogin {
 
         Button loginButton = new Button("Sign In");
         Button signupButton = new Button("Create Account");
-
         Label statusLabel = new Label();
 
         loginButton.setOnAction(this::authenticate);
