@@ -51,10 +51,10 @@ public class ScheduleMovieShowtime {
 
                 String insertShowtime = "INSERT INTO showtimes (movie_id, room_number, show_date, show_time) VALUES (?, ?, ?, ?)";
                 PreparedStatement showStmt = con.prepareStatement(insertShowtime);
-                showStmt.setInt(1, movieId);
-                showStmt.setInt(2, Integer.parseInt(roomField.getText()));
+                showStmt.setInt(1, movieId); // auto-generated from previous movie insert
+                showStmt.setInt(2, Integer.parseInt(roomField.getText().trim()));
                 showStmt.setDate(3, java.sql.Date.valueOf(datePicker.getValue()));
-                showStmt.setTime(4, java.sql.Time.valueOf(timeField.getText() + ":00"));
+                showStmt.setTime(4, java.sql.Time.valueOf(timeField.getText().trim() + ":00"));
                 showStmt.executeUpdate();
 
                 statusLabel.setText("Movie scheduled successfully!");
