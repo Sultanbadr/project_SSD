@@ -1,23 +1,18 @@
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
+import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class SeatSelection {
     private Stage stage;
-    private int showtimeId;
-    private List<Seat> selectedSeats = new ArrayList<>(); // List to keep track of selected seats
+    private final int showtimeId;
+    private List<CheckBox> seatCheckBoxes = new ArrayList<>(); // List to keep track of selected seats
 
     public SeatSelection(Stage stage, int showtimeId) {
         this.stage = stage;
@@ -28,135 +23,111 @@ public class SeatSelection {
         VBox layout = new VBox(10);
         layout.setPadding(new Insets(15));
 
-        Label titleLabel = new Label("Select Your Seats");
-        layout.getChildren().add(titleLabel);
+        Label label = new Label("Select Seats for Showtime ID: " + showtimeId);
+        Button confirmBtn = new Button("Confirm Selection");
+        confirmBtn.setDisable(true); // Initially disabled
 
         GridPane seatGrid = new GridPane();
         seatGrid.setHgap(10);
         seatGrid.setVgap(10);
 
-        List<Seat> seats = fetchAvailableSeats();
-
-        int row = 0;
-        int col = 0;
-        for (Seat seat : seats) {
-            Button seatBtn = new Button(seat.getSeatNumber());
-            seatBtn.setMinSize(50, 50);
-            if (seat.isBooked()) {
-                seatBtn.setStyle("-fx-background-color: red;");
-                seatBtn.setDisable(true); // Booked seats are disabled
-            } else {
-                seatBtn.setStyle("-fx-background-color: green;");
-                seatBtn.setOnAction(e -> {
-                    // Toggle seat selection
-                    if (selectedSeats.contains(seat)) {
-                        selectedSeats.remove(seat);
-                        seatBtn.setStyle("-fx-background-color: green;");
-                    } else {
-                        selectedSeats.add(seat);
-                        seatBtn.setStyle("-fx-background-color: blue;");
-                    }
-                });
-            }
-
-            seatGrid.add(seatBtn, col, row);
-            col++;
-            if (col == 5) {  // Assuming 5 seats per row
-                col = 0;
-                row++;
-            }
-        }
-
-        // Confirm button
-        Button confirmBtn = new Button("Confirm Selection");
-        confirmBtn.setOnAction(e -> confirmBooking());
-
-        // Back button to return to the dashboard
-        Button backBtn = new Button("Back");
-        backBtn.setOnAction(e -> new Dashboard(stage).initializeComponents());
-
-        // Add the buttons and grid to the layout
-        layout.getChildren().addAll(seatGrid, confirmBtn, backBtn);
-
-        Scene scene = new Scene(layout, 400, 400);
-        stage.setScene(scene);
-        stage.setTitle("Seat Selection");
-        stage.show();
-    }
-
-    private List<Seat> fetchAvailableSeats() {
-        List<Seat> seats = new ArrayList<>();
+        // Fetch available seats from the database
         try (Connection con = DBUtils.establishConnection()) {
             String query = "SELECT seat_number, is_booked FROM seats WHERE showtime_id = ?";
             PreparedStatement stmt = con.prepareStatement(query);
             stmt.setInt(1, showtimeId);
             ResultSet rs = stmt.executeQuery();
 
+            int row = 0;
+            int col = 0;
+
             while (rs.next()) {
-                String seatNumber = rs.getString("seat_number");
+                int seatNumber = rs.getInt("seat_number");
                 boolean isBooked = rs.getBoolean("is_booked");
-                seats.add(new Seat(seatNumber, isBooked));
+
+                // Display seat number and availability
+                CheckBox seat = new CheckBox("Seat " + seatNumber);
+                seat.setDisable(isBooked); // Disable checkbox if the seat is booked
+                if (!isBooked) {
+                    seat.setOnAction(e -> handleSeatSelection(seat)); // Enable seat selection if available
+                }
+
+                seatGrid.add(seat, col, row);
+                seatCheckBoxes.add(seat);
+
+                col++;
+                if (col >= 5) { // Start a new row after 5 seats
+                    col = 0;
+                    row++;
+                }
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
+            showAlert("Error", "Could not fetch seat availability.");
         }
-        return seats;
+
+        // Enable confirm button when at least one seat is selected
+        for (CheckBox seat : seatCheckBoxes) {
+            seat.selectedProperty().addListener((observable, oldValue, newValue) -> {
+                // Enable the confirm button only when at least one seat is selected
+                boolean anySeatSelected = seatCheckBoxes.stream().anyMatch(CheckBox::isSelected);
+                confirmBtn.setDisable(!anySeatSelected);
+            });
+        }
+
+        // Confirm button action
+        confirmBtn.setOnAction(e -> {
+            // Collect selected seats and proceed with confirmation
+            List<String> selectedSeats = new ArrayList<>();
+            for (CheckBox seat : seatCheckBoxes) {
+                if (seat.isSelected()) {
+                    selectedSeats.add(seat.getText());
+                }
+            }
+
+            if (selectedSeats.isEmpty()) {
+                showAlert("No seats selected", "Please select at least one seat.");
+            } else {
+                try (Connection con = DBUtils.establishConnection()) {
+                    String updateQuery = "UPDATE seats SET is_booked = ? WHERE seat_number = ? AND showtime_id = ?";
+                    PreparedStatement updateStmt = con.prepareStatement(updateQuery);
+
+                    for (String seatText : selectedSeats) {
+                        int seatNumber = Integer.parseInt(seatText.split(" ")[1]);
+                        updateStmt.setBoolean(1, true);
+                        updateStmt.setInt(2, seatNumber);
+                        updateStmt.setInt(3, showtimeId);
+                        updateStmt.executeUpdate();
+                    }
+
+                    showAlert("Booking confirmed", "Seats " + String.join(", ", selectedSeats) + " have been successfully booked.");
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    showAlert("Error", "Failed to confirm booking.");
+                }
+            }
+        });
+
+        // Add all components to Layout
+        layout.getChildren().addAll(label, seatGrid, confirmBtn);
+
+        // Set up the scene and show the stage
+        stage.setScene(new Scene(layout, 300, 300));
+        stage.setTitle("Seat Selection");
+        stage.show();
     }
 
-    private void confirmBooking() {
-        if (selectedSeats.isEmpty()) {
-            // If no seat is selected, show an alert
-            Alert alert = new Alert(Alert.AlertType.WARNING);
-            alert.setTitle("No Selection");
-            alert.setHeaderText(null);
-            alert.setContentText("Please select at least one seat.");
-            alert.showAndWait();
-            return;
-        }
-
-        // Perform booking (e.g., mark seats as booked in the database)
-        for (Seat seat : selectedSeats) {
-            bookSeat(seat);  // Update the database for the selected seat
-        }
-
-        // Show confirmation alert
+    // Simple alert to display messages to the user
+    private void showAlert(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Booking Confirmation");
+        alert.setTitle(title);
         alert.setHeaderText(null);
-        alert.setContentText("Your seats have been booked successfully.");
+        alert.setContentText(message);
         alert.showAndWait();
-
-        // Return to dashboard
-        new Dashboard(stage).initializeComponents();
     }
 
-    private void bookSeat(Seat seat) {
-        try (Connection con = DBUtils.establishConnection()) {
-            String query = "UPDATE seats SET is_booked = true WHERE seat_number = ? AND showtime_id = ?";
-            PreparedStatement stmt = con.prepareStatement(query);
-            stmt.setString(1, seat.getSeatNumber());
-            stmt.setInt(2, showtimeId);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static class Seat {
-        private String seatNumber;
-        private boolean isBooked;
-
-        public Seat(String seatNumber, boolean isBooked) {
-            this.seatNumber = seatNumber;
-            this.isBooked = isBooked;
-        }
-
-        public String getSeatNumber() {
-            return seatNumber;
-        }
-
-        public boolean isBooked() {
-            return isBooked;
-        }
+    // Handle seat selection and check if any seat is selected
+    private void handleSeatSelection(CheckBox seat) {
+        System.out.println(seat.getText() + " selected: " + seat.isSelected());
     }
 }
