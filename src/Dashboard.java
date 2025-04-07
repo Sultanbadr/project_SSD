@@ -1,6 +1,6 @@
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
+import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
@@ -22,7 +22,10 @@ public class Dashboard {
         Button backBtn = new Button("Logout");
 
         scheduleBtn.setOnAction(e -> new ScheduleMovieShowtime(stage).initializeComponents());
-        seatsBtn.setOnAction(e -> new SeatSelection(stage).initializeComponents());
+        seatsBtn.setOnAction(e -> {
+            int showtimeId = 1;
+            new SeatSelection(stage, showtimeId).initializeComponents();
+        });
         analyticsBtn.setOnAction(e -> new MovieAnalytics(stage).initializeComponents());
         maintenanceBtn.setOnAction(e -> new MaintenanceLogger(stage).initializeComponents());
         backBtn.setOnAction(e -> new UserLogin(stage).initializeComponents());
